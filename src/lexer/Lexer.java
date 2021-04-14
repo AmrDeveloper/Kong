@@ -119,7 +119,7 @@ public class Lexer {
         while (isLetter(ch)) {
             readChar();
         }
-        return input.substring(startPosition, position);
+        return input.substring(startPosition - 1, position);
     }
 
     private String readNumber() {

@@ -17,6 +17,11 @@ public class Token {
     public String getLiteral() {
         return literal;
     }
+
+    @Override
+    public String toString() {
+        return "Token {" + "tokenType=" + tokenType + ", literal='" + literal + '\'' + '}';
+    }
 }
 
 
