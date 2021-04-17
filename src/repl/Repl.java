@@ -1,11 +1,12 @@
 package repl;
 
+import ast.Program;
 import lexer.Lexer;
-import token.Token;
-import token.TokenType;
+import parser.Parser;
 
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.List;
 import java.util.Scanner;
 
 public class Repl {
@@ -19,13 +20,26 @@ public class Repl {
             if(scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 Lexer lexer = new Lexer(line);
+                Parser parser = new Parser(lexer);
+                Program program = parser.parseProgram();
 
-                Token token = lexer.nextToken();
-                while (token.getTokenType() != TokenType.EOF) {
-                    output.println(token);
-                    token = lexer.nextToken();
+                List<String> errors = parser.getErrors();
+                if(!errors.isEmpty()) {
+                    printParserErrors(output, errors);
+                    continue;
                 }
+
+                output.print(program.toString());
+                output.print("\n");
             }
+        }
+    }
+
+    private static void printParserErrors(PrintStream output, List<String> messages) {
+        output.println("Woops! We ran into some monkey business here!");
+        output.println(" parser errors:");
+        for(String message : messages) {
+            output.println("\t" + message);
         }
     }
 }
