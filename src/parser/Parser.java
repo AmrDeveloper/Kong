@@ -13,7 +13,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static ast.Precedence.*;
-import static token.TokenType.*;
 
 public class Parser {
 
@@ -45,6 +44,7 @@ public class Parser {
         this.prefixParseFns = new HashMap<>();
         registerPrefix(TokenType.IDENT, parseIdentifier);
         registerPrefix(TokenType.INT, parseIntegerLiteral);
+        registerPrefix(TokenType.STRING, parseStringLiteral);
         registerPrefix(TokenType.BANG, parsePrefixExpression);
         registerPrefix(TokenType.MINUS, parsePrefixExpression);
         registerPrefix(TokenType.TRUE, parseBooleanExpression);
@@ -186,7 +186,7 @@ public class Parser {
         Identifier identifier = new Identifier(currentToken.getLiteral());
         identifiers.add(identifier);
 
-        while (peekTokenIs(COMMA)) {
+        while (peekTokenIs(TokenType.COMMA)) {
             nextToken();
             nextToken();
             Identifier newIdentifier = new Identifier(currentToken.getLiteral());
@@ -215,7 +215,7 @@ public class Parser {
             arguments.add(parseExpression(LOWEST));
         }
 
-        if(!expectPeek(R_PAREN)) return null;
+        if(!expectPeek(TokenType.R_PAREN)) return null;
 
         return arguments;
     }
@@ -225,6 +225,10 @@ public class Parser {
     private final Supplier<Expression> parseIntegerLiteral = () -> {
         long value = Long.parseLong(currentToken.getLiteral());
         return new IntegerLiteral(value);
+    };
+
+    private final Supplier<Expression> parseStringLiteral = () -> {
+        return new StringLiteral(currentToken.getLiteral());
     };
 
     private final Supplier<Expression> parsePrefixExpression = () -> {

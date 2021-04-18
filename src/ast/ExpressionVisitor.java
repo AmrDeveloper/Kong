@@ -3,6 +3,7 @@ package ast;
 public interface ExpressionVisitor<R> {
     R visit(Identifier expression);
     R visit(IntegerLiteral expression);
+    R visit(StringLiteral expression);
     R visit(BooleanLiteral expression);
     R visit(PrefixExpression expression);
     R visit(InfixExpression expression);

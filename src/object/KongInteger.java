@@ -1,6 +1,6 @@
 package object;
 
-public class KongInteger extends KongObject{
+public class KongInteger extends KongObject {
 
     private final long value;
 

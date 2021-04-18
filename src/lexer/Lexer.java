@@ -72,7 +72,11 @@ public class Lexer {
             case '>': token =  newToken(TokenType.GT, ch); break;
             case ';': token =  newToken(TokenType.SEMICOLON, ch); break;
             case ',': token =  newToken(TokenType.COMMA, ch); break;
-            case 0: token =  newToken(TokenType.EOF, ' '); break;
+            case  0 : token =  newToken(TokenType.EOF, ' '); break;
+            case '\"': {
+                String literal = readString();
+                return newToken(TokenType.STRING, literal);
+            }
             default: {
                 if(isLetter(ch)) {
                     String literal = readIdentifier();
@@ -129,6 +133,17 @@ public class Lexer {
             readChar();
         }
         return input.substring(startPosition, position);
+    }
+
+    private String readString() {
+        int startPosition = position + 1;
+        do {
+            readChar();
+        } while (ch != '"' && ch != 0);
+
+        // Consume closing "
+        readChar();
+        return input.substring(startPosition, position - 1);
     }
 
     private TokenType lookupIdent(String ident) {

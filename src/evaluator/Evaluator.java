@@ -71,6 +71,11 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
     }
 
     @Override
+    public KongObject visit(StringLiteral expression) {
+        return new KongString(expression.getValue());
+    }
+
+    @Override
     public KongObject visit(BooleanLiteral expression) {
         return expression.isValue() ? TRUE : FALSE;
     }
@@ -161,9 +166,12 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
         if(left.getObjectType() == ObjectType.INTEGER && right.getObjectType() == ObjectType.INTEGER) {
             return evalIntegerInfixExpression(operator, left, right);
         }
-        else if(operator.equals("==")) return nativeBoolToBooleanObject(left == right);
-        else if(operator.equals("!=")) return nativeBoolToBooleanObject(left != right);
-        else if(left.getObjectType() != right.getObjectType()) {
+        if(left.getObjectType() == ObjectType.STRING && right.getObjectType() == ObjectType.STRING) {
+            return evalStringInfixExpression(operator, left, right);
+        }
+        if(operator.equals("==")) return nativeBoolToBooleanObject(left == right);
+        if(operator.equals("!=")) return nativeBoolToBooleanObject(left != right);
+        if(left.getObjectType() != right.getObjectType()) {
             return newError("type mismatch: %s %s %s", left.getObjectType(), operator, right.getObjectType());
         }
         return newError("unknown operator: %s %s %s", left.getObjectType(), operator, right.getObjectType());
@@ -182,6 +190,19 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
             case ">":  return nativeBoolToBooleanObject(leftValue > rightValue);
             case "==": return nativeBoolToBooleanObject(leftValue == rightValue);
             case "!=": return nativeBoolToBooleanObject(leftValue != rightValue);
+            default: return newError("unknown operator: %s %s %s", left.getObjectType(), operator, right.getObjectType());
+        }
+    }
+
+    private KongObject evalStringInfixExpression(String operator, KongObject left, KongObject right) {
+        String leftValue = ((KongString) left).getValue();
+        String rightValue = ((KongString) right).getValue();
+        switch (operator) {
+            case "+":  return new KongString(leftValue + rightValue);
+            case "<":  return nativeBoolToBooleanObject(leftValue.length() < rightValue.length());
+            case ">":  return nativeBoolToBooleanObject(leftValue.length() > rightValue.length());
+            case "==": return nativeBoolToBooleanObject(leftValue.equals(rightValue));
+            case "!=": return nativeBoolToBooleanObject(!leftValue.equals(rightValue));
             default: return newError("unknown operator: %s %s %s", left.getObjectType(), operator, right.getObjectType());
         }
     }
