@@ -6,13 +6,13 @@ import ast.Identifier;
 
 import java.util.List;
 
-public class Function extends KongObject {
+public class KongFunction extends KongObject {
 
     private final List<Identifier> parameters;
     private final BlockStatement body;
     private final Environment environment;
 
-    public Function(List<Identifier> parameters, BlockStatement body, Environment environment) {
+    public KongFunction(List<Identifier> parameters, BlockStatement body, Environment environment) {
         super(ObjectType.FUNCTION);
         this.parameters = parameters;
         this.body = body;

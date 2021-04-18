@@ -3,9 +3,8 @@ package evaluator;
 import ast.*;
 import object.*;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
 
 public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisitor<KongObject> {
 
@@ -13,10 +12,13 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
     private static final KongBoolean TRUE = new KongBoolean(true);
     private static final KongBoolean FALSE = new KongBoolean(false);
 
+    private final Map<String, BuiltinFunction> builtinFunctionsMap = new HashMap<>();
+
     private Environment environment;
 
     public Evaluator(Environment environment) {
         this.environment = environment;
+        this.builtinFunctionsMap.put("len", new BuiltinFunction(builtinStringLength));
     }
 
     @Override
@@ -59,10 +61,12 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
     @Override
     public KongObject visit(Identifier expression) {
         KongObject value = environment.get(expression.getValue());
-        if(value == null) {
-            return newError("identifier not found: " + expression.getValue());
-        }
-        return value;
+        if(value != null) return value;
+
+        BuiltinFunction function = builtinFunctionsMap.get(expression.getValue());
+        if(function != null) return function;
+
+        return newError("identifier not found: " + expression.getValue());
     }
 
     @Override
@@ -115,7 +119,7 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
     public KongObject visit(FunctionLiteral expression) {
         List<Identifier> params = expression.getParameters();
         BlockStatement body = expression.getBody();
-        return new Function(params, body, environment);
+        return new KongFunction(params, body, environment);
     }
 
     @Override
@@ -123,7 +127,7 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
         KongObject function = expression.getFunction().accept(this);
         if(isError(function)) return function;
 
-        List<KongObject> args = evalExpressions(expression.getArguments(), environment);
+        List<KongObject> args = evalExpressions(expression.getArguments());
         if(args.size() == 1 && isError(args.get(0))) return args.get(0);
 
         return applyFunction(function, args);
@@ -208,23 +212,28 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
     }
 
     private KongObject applyFunction(KongObject function, List<KongObject> args) {
-        if(!(function instanceof Function)) {
-            return newError("not a function: %s", function.getObjectType());
+        if(function instanceof KongFunction) {
+            Environment currentEnv = environment;
+
+            KongFunction functionObject = (KongFunction) function;
+            Environment extendedEnv = extendFunctionEnv(functionObject, args);
+
+            environment = extendedEnv;
+            KongObject evaluated = functionObject.getBody().accept(this);
+            environment = currentEnv;
+
+            return unwrapReturnValue(evaluated);
         }
 
-        Environment currentEnv = environment;
+        else if(function instanceof BuiltinFunction) {
+            BuiltinFunction builtinFunction = (BuiltinFunction) function;
+            return builtinFunction.getFunction().apply(args);
+        }
 
-        Function functionObject = (Function) function;
-        Environment extendedEnv = extendFunctionEnv(functionObject, args);
-
-        environment = extendedEnv;
-        KongObject evaluated = functionObject.getBody().accept(this);
-        environment = currentEnv;
-
-        return unwrapReturnValue(evaluated);
+        return newError("not a function: %s", function.getObjectType());
     }
 
-    private Environment extendFunctionEnv(Function function, List<KongObject> args) {
+    private Environment extendFunctionEnv(KongFunction function, List<KongObject> args) {
         Environment env = new Environment(function.getEnvironment());
         List<Identifier> parameters = function.getParameters();
         for(int i = 0 ; i < parameters.size() ; i++) {
@@ -240,7 +249,7 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
         return object;
     }
 
-    private List<KongObject> evalExpressions(List<Expression> expressions, Environment env) {
+    private List<KongObject> evalExpressions(List<Expression> expressions) {
         List<KongObject> result = new ArrayList<>();
         for(Expression expression : expressions) {
             KongObject evaluated = expression.accept(this);
@@ -272,4 +281,20 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
         }
         return false;
     }
+
+    private final Function<List<KongObject>, KongObject> builtinStringLength = args -> {
+        if(args.size() != 1) {
+            return newError("wrong number of arguments. got=%d, want=1", args.size());
+        }
+
+        switch (args.get(0).getObjectType()) {
+            case STRING: {
+                String value = ((KongString )args.get(0)).getValue();
+                return new KongInteger(value.length());
+            }
+            default: {
+                return newError("argument to `len` not supported, got %s", args.get(0).getObjectType());
+            }
+        }
+    };
 }
