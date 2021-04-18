@@ -10,7 +10,7 @@ public class LetStatement extends Statement {
         this.value = value;
     }
 
-    public Identifier getIdentifier() {
+    public Identifier getName() {
         return name;
     }
 

@@ -1,7 +1,10 @@
 package repl;
 
 import ast.Program;
+import evaluator.Evaluator;
 import lexer.Lexer;
+import object.Environment;
+import object.KongObject;
 import parser.Parser;
 
 import java.io.InputStream;
@@ -15,6 +18,8 @@ public class Repl {
 
     public static void start(InputStream input, PrintStream output) {
         Scanner scanner = new Scanner(input);
+        Environment environment = new Environment();
+
         while (true) {
             output.print(PROMPT);
             if(scanner.hasNextLine()) {
@@ -29,8 +34,12 @@ public class Repl {
                     continue;
                 }
 
-                output.print(program.toString());
-                output.print("\n");
+                Evaluator evaluator = new Evaluator(environment);
+                KongObject evaluated = evaluator.visit(program);
+                if(evaluated != null) {
+                    output.print(evaluated.inspect());
+                    output.print("\n");
+                }
             }
         }
     }
