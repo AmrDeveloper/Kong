@@ -54,6 +54,8 @@ public class Lexer {
             case ')': token =  newToken(TokenType.R_PAREN, ch); break;
             case '{': token =  newToken(TokenType.L_BRACE, ch); break;
             case '}': token =  newToken(TokenType.R_BRACE, ch); break;
+            case '[': token =  newToken(TokenType.L_BRACKET, ch); break;
+            case ']': token =  newToken(TokenType.R_BRACKET, ch); break;
             case '+': token =  newToken(TokenType.PLUS, ch); break;
             case '-': token =  newToken(TokenType.MINUS, ch); break;
             case '!': {

@@ -35,6 +35,7 @@ public class Parser {
         precedences.put(TokenType.SLASH, PRODUCT);
         precedences.put(TokenType.ASTERISK, PRODUCT);
         precedences.put(TokenType.L_PAREN, CALL);
+        precedences.put(TokenType.L_BRACKET, INDEX);
     }
 
     public Parser(Lexer lexer) {
@@ -52,6 +53,7 @@ public class Parser {
         registerPrefix(TokenType.L_PAREN, parseGroupedExpression);
         registerPrefix(TokenType.IF, parseIfExpression);
         registerPrefix(TokenType.FUNCTION, parseFunctionLiteral);
+        registerPrefix(TokenType.L_BRACKET, parseArrayLiteral);
 
         this.infixParseFns = new HashMap<>();
         registerInfix(TokenType.PLUS, parseInfixExpression);
@@ -63,6 +65,7 @@ public class Parser {
         registerInfix(TokenType.LT, parseInfixExpression);
         registerInfix(TokenType.GT, parseInfixExpression);
         registerInfix(TokenType.L_PAREN, parseCallExpression);
+        registerInfix(TokenType.L_BRACKET, parseIndexExpression);
 
         // Read two tokens, so curToken and peekToken are both set
         nextToken();
@@ -173,6 +176,28 @@ public class Parser {
         return leftExp;
     }
 
+    private List<Expression> parseExpressionList(TokenType endToken) {
+        List<Expression> expressions = new ArrayList<>();
+
+        if(peekTokenIs(endToken)) {
+            nextToken();
+            return expressions;
+        }
+
+        nextToken();
+        expressions.add(parseExpression(LOWEST));
+
+        while (peekTokenIs(TokenType.COMMA)) {
+            nextToken();
+            nextToken();
+            expressions.add(parseExpression(LOWEST));
+        }
+
+        if(!expectPeek(endToken)) return null;
+
+        return expressions;
+    }
+
     private List<Identifier> parseFunctionParameters() {
         List<Identifier> identifiers = new ArrayList<>();
 
@@ -196,28 +221,6 @@ public class Parser {
         if(!expectPeek(TokenType.R_PAREN)) return null;
 
         return identifiers;
-    }
-
-    private List<Expression> parseCallArguments() {
-        List<Expression> arguments = new ArrayList<>();
-
-        if(peekTokenIs(TokenType.R_PAREN)) {
-            nextToken();
-            return arguments;
-        }
-
-        nextToken();
-        arguments.add(parseExpression(LOWEST));
-
-        while (peekTokenIs(TokenType.COMMA)) {
-            nextToken();
-            nextToken();
-            arguments.add(parseExpression(LOWEST));
-        }
-
-        if(!expectPeek(TokenType.R_PAREN)) return null;
-
-        return arguments;
     }
 
     private final Supplier<Expression> parseIdentifier = () -> new Identifier(currentToken.getLiteral());
@@ -292,6 +295,11 @@ public class Parser {
         return new FunctionLiteral(parameters, body);
     };
 
+    private final Supplier<Expression> parseArrayLiteral = () -> {
+        List<Expression> elements = parseExpressionList(TokenType.R_BRACKET);
+        return new ArrayLiteral(elements);
+    };
+
     private final Function<Expression, Expression> parseInfixExpression = left -> {
         String operator = currentToken.getLiteral();
 
@@ -303,8 +311,17 @@ public class Parser {
     };
 
     private final Function<Expression, Expression> parseCallExpression = function -> {
-        List<Expression> arguments = parseCallArguments();
+        List<Expression> arguments = parseExpressionList(TokenType.R_PAREN);
         return new CallExpression(function, arguments);
+    };
+
+    private final Function<Expression, Expression> parseIndexExpression = left -> {
+        nextToken();
+        Expression index = parseExpression(LOWEST);
+
+        if(!expectPeek(TokenType.R_BRACKET)) return null;
+
+        return new IndexExpression(left, index);
     };
 
     private void nextToken() {

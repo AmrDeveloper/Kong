@@ -7,7 +7,8 @@ public enum Precedence {
     SUM(4), // +
     PRODUCT(5), // *
     PREFIX(6),// -X or !X
-    CALL(7); // myFunction(X)
+    CALL(7), // myFunction(X)
+    INDEX(8); // array[index]
 
     private final int rank;
 

@@ -31,6 +31,8 @@ public enum  TokenType {
     R_PAREN,
     L_BRACE,
     R_BRACE,
+    L_BRACKET,
+    R_BRACKET,
 
     // Keywords
     FUNCTION,

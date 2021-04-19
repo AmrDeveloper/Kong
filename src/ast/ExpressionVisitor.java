@@ -10,4 +10,6 @@ public interface ExpressionVisitor<R> {
     R visit(IfExpression expression);
     R visit(FunctionLiteral expression);
     R visit(CallExpression expression);
+    R visit(ArrayLiteral expression);
+    R visit(IndexExpression expression);
 }

@@ -18,7 +18,11 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
 
     public Evaluator(Environment environment) {
         this.environment = environment;
+
+        // Set Builtin Functions
         this.builtinFunctionsMap.put("len", new BuiltinFunction(builtinStringLength));
+        this.builtinFunctionsMap.put("push", new BuiltinFunction(builtinArrayPush));
+        this.builtinFunctionsMap.put("puts", new BuiltinFunction(builtinPrintln));
     }
 
     @Override
@@ -133,6 +137,24 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
         return applyFunction(function, args);
     }
 
+    @Override
+    public KongObject visit(ArrayLiteral expression) {
+        List<KongObject> elements = evalExpressions(expression.getElements());
+        if(elements.size() == 1 && isError(elements.get(0))) return elements.get(0);
+        return new KongArray(elements);
+    }
+
+    @Override
+    public KongObject visit(IndexExpression expression) {
+        KongObject left = expression.getLeft().accept(this);
+        if(isError(left)) return left;
+
+        KongObject index = expression.getIndex().accept(this);
+        if(isError(index)) return index;
+
+        return evalIndexExpression(left, index);
+    }
+
     private KongObject evalStatements(List<Statement> statements) {
         KongObject result = null;
         for(Statement statement : statements) {
@@ -209,6 +231,35 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
             case "!=": return nativeBoolToBooleanObject(!leftValue.equals(rightValue));
             default: return newError("unknown operator: %s %s %s", left.getObjectType(), operator, right.getObjectType());
         }
+    }
+
+    private KongObject evalIndexExpression(KongObject left, KongObject index) {
+        if(left.getObjectType() == ObjectType.ARRAY && index.getObjectType() == ObjectType.INTEGER) {
+            return evalArrayIndexExpression(left, index);
+        }
+        if(left.getObjectType() == ObjectType.STRING && index.getObjectType() == ObjectType.INTEGER) {
+            return evalStringIndexExpression(left, index);
+        }
+        return newError("index operator not supported: %s", left.getObjectType());
+    }
+
+    private KongObject evalArrayIndexExpression(KongObject array, KongObject index) {
+        KongArray kongArray = (KongArray) array;
+        long kongIndex = ((KongInteger) index).getValue();
+        int maxLength = kongArray.getElements().size() - 1;
+
+        if(kongIndex < 0 || kongIndex > maxLength) return NULL;
+        return kongArray.getElements().get((int) kongIndex);
+    }
+
+    private KongObject evalStringIndexExpression(KongObject array, KongObject index) {
+        KongString kongString = (KongString) array;
+        long kongIndex = ((KongInteger) index).getValue();
+        int maxLength = kongString.getValue().length() - 1;
+
+        if(kongIndex < 0 || kongIndex > maxLength) return NULL;
+        String charAtPosition = String.valueOf(kongString.getValue().charAt((int) kongIndex));
+        return new KongString(charAtPosition);
     }
 
     private KongObject applyFunction(KongObject function, List<KongObject> args) {
@@ -292,9 +343,36 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
                 String value = ((KongString )args.get(0)).getValue();
                 return new KongInteger(value.length());
             }
+            case ARRAY: {
+                KongArray value = ((KongArray)args.get(0));
+                int length = value.getElements().size();
+                return new KongInteger(length);
+            }
             default: {
                 return newError("argument to `len` not supported, got %s", args.get(0).getObjectType());
             }
         }
+    };
+
+    private final Function<List<KongObject>, KongObject> builtinArrayPush = args -> {
+        if(args.size() != 2) {
+            return newError("wrong number of arguments. got=%d, want=2", args.size());
+        }
+
+        if(args.get(0).getObjectType() != ObjectType.ARRAY) {
+            return newError("argument to `push` must be ARRAY, got %s", args.get(0).getObjectType());
+        }
+
+        KongArray array = (KongArray) args.get(0);
+        List<KongObject> elements = array.getElements();
+        elements.add(args.get(1));
+        return array;
+    };
+
+    private final Function<List<KongObject>, KongObject> builtinPrintln = args -> {
+        for(KongObject arg : args) {
+            System.out.println(arg.inspect());
+        }
+        return NULL;
     };
 }
