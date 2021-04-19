@@ -6,6 +6,7 @@ public enum ObjectType {
     STRING,
     BOOLEAN,
     ARRAY,
+    MAP,
     NULL,
     RETURN,
     ERROR,

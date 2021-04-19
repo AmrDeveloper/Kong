@@ -1,6 +1,6 @@
 package object;
 
-public class KongInteger extends KongObject {
+public class KongInteger extends KongObject implements Hashable{
 
     private final long value;
 
@@ -16,5 +16,10 @@ public class KongInteger extends KongObject {
     @Override
     public String inspect() {
         return String.valueOf(value);
+    }
+
+    @Override
+    public KongMapKey getHashKey() {
+        return new KongMapKey(ObjectType.INTEGER, (int) value);
     }
 }

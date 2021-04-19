@@ -12,4 +12,5 @@ public interface ExpressionVisitor<R> {
     R visit(CallExpression expression);
     R visit(ArrayLiteral expression);
     R visit(IndexExpression expression);
+    R visit(MapLiteral expression);
 }

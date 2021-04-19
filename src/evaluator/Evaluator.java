@@ -155,6 +155,27 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
         return evalIndexExpression(left, index);
     }
 
+    @Override
+    public KongObject visit(MapLiteral expression) {
+        Map<Expression, Expression> expressionsPairs = expression.getPairs();
+        Map<KongMapKey, KongMapPair> kongObjectsMap = new HashMap<>();
+        for(Map.Entry<Expression, Expression> expressionPair : expressionsPairs.entrySet()) {
+            KongObject key = expressionPair.getKey().accept(this);
+            if(isError(key)) return key;
+            if(!(key instanceof Hashable)) {
+                return newError("unusable as hash key: %s", key.getObjectType());
+            }
+
+            KongObject value = expressionPair.getValue().accept(this);
+            if(isError(value)) return value;
+
+            Hashable hashable = (Hashable) key;
+            KongMapPair pair = new KongMapPair(key, value);
+            kongObjectsMap.put(hashable.getHashKey(), pair);
+        }
+        return new KongMap(kongObjectsMap);
+    }
+
     private KongObject evalStatements(List<Statement> statements) {
         KongObject result = null;
         for(Statement statement : statements) {
@@ -237,6 +258,9 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
         if(left.getObjectType() == ObjectType.ARRAY && index.getObjectType() == ObjectType.INTEGER) {
             return evalArrayIndexExpression(left, index);
         }
+        if(left.getObjectType() == ObjectType.MAP) {
+            return evalMapIndexExpression(left, index);
+        }
         if(left.getObjectType() == ObjectType.STRING && index.getObjectType() == ObjectType.INTEGER) {
             return evalStringIndexExpression(left, index);
         }
@@ -252,8 +276,19 @@ public class Evaluator implements StatementVisitor<KongObject>, ExpressionVisito
         return kongArray.getElements().get((int) kongIndex);
     }
 
-    private KongObject evalStringIndexExpression(KongObject array, KongObject index) {
-        KongString kongString = (KongString) array;
+    private KongObject evalMapIndexExpression(KongObject map, KongObject key) {
+        if(!(key instanceof Hashable)) {
+            return newError("unusable as hash key: %s", key.getObjectType());
+        }
+        Hashable hashable = (Hashable) key;
+        KongMap kongMap = (KongMap) map;
+        KongMapPair pair = kongMap.getPairs().get(hashable.getHashKey());
+        if(pair == null) return NULL;
+        return pair.getValue();
+    }
+
+    private KongObject evalStringIndexExpression(KongObject string, KongObject index) {
+        KongString kongString = (KongString) string;
         long kongIndex = ((KongInteger) index).getValue();
         int maxLength = kongString.getValue().length() - 1;
 

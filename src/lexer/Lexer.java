@@ -73,6 +73,7 @@ public class Lexer {
             case '<': token =  newToken(TokenType.LT, ch); break;
             case '>': token =  newToken(TokenType.GT, ch); break;
             case ';': token =  newToken(TokenType.SEMICOLON, ch); break;
+            case ':': token =  newToken(TokenType.COLON, ch); break;
             case ',': token =  newToken(TokenType.COMMA, ch); break;
             case  0 : token =  newToken(TokenType.EOF, ' '); break;
             case '\"': {

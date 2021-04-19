@@ -54,6 +54,7 @@ public class Parser {
         registerPrefix(TokenType.IF, parseIfExpression);
         registerPrefix(TokenType.FUNCTION, parseFunctionLiteral);
         registerPrefix(TokenType.L_BRACKET, parseArrayLiteral);
+        registerPrefix(TokenType.L_BRACE, parseMapLiteral);
 
         this.infixParseFns = new HashMap<>();
         registerInfix(TokenType.PLUS, parseInfixExpression);
@@ -298,6 +299,24 @@ public class Parser {
     private final Supplier<Expression> parseArrayLiteral = () -> {
         List<Expression> elements = parseExpressionList(TokenType.R_BRACKET);
         return new ArrayLiteral(elements);
+    };
+
+    private final Supplier<Expression> parseMapLiteral = () -> {
+        Map<Expression, Expression> pairs = new HashMap<>();
+
+        while (!peekTokenIs(TokenType.R_BRACE)) {
+            nextToken();
+            Expression key = parseExpression(LOWEST);
+            if(!expectPeek(TokenType.COLON)) return null;
+            nextToken();
+            Expression value = parseExpression(LOWEST);
+            pairs.put(key, value);
+
+            if(!peekTokenIs(TokenType.R_BRACE) && !expectPeek(TokenType.COMMA)) return null;
+        }
+
+        if(!expectPeek(TokenType.R_BRACE)) return null;
+        return new MapLiteral(pairs);
     };
 
     private final Function<Expression, Expression> parseInfixExpression = left -> {
