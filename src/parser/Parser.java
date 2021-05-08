@@ -361,7 +361,6 @@ public class Parser {
             nextToken();
             return true;
         } else {
-            peekTokenIs(type);
             return false;
         }
     }
